@@ -1,0 +1,94 @@
+stato rappresentato come [px vx py vy]
+
+- MaskOnState (Train&Test) = False & CompositionLoss = False :
+
+Kalman Filter - MSE LOSS: tensor(27.1808) [dB]
+Kalman Filter - STD: tensor(2.8512) [dB]
+
+KalmanNet-MSE Test: tensor(18.5101) [dB]
+KalmanNet-STD Test: tensor(1.9205) [dB]
+
+Scheduler con factor = 0.1 & patience = 10 && gradient clipping con max_norm = 1
+
+
+
+
+
+
+
+
+- MaskOnState (Train) = False & MaskOnState (Test) = True & CompositionLoss = False :
+
+Kalman Filter - MSE LOSS: tensor(25.1652) [dB]
+Kalman Filter - STD: tensor(2.6051) [dB]
+
+KalmanNet-MSE Test: tensor(19.7427) [dB]
+KalmanNet-STD Test: tensor(1.9083) [dB]
+
+
+Scheduler con factor = 0.05 & patience = 10 && gradient clipping con max_norm = 1
+
+
+
+
+
+- MaskOnState (Train&Test) = True & CompositionLoss = False :
+
+Kalman Filter - MSE LOSS: tensor(27.4769) [dB]
+Kalman Filter - STD: tensor(2.4794) [dB]
+
+KalmanNet-MSE Test: tensor(20.7701) [dB]
+KalmanNet-STD Test: tensor(2.0178) [dB]
+
+Scheduler con factor = 0.05 & patience = 10 && gradient clipping con max_norm = 1
+
+
+
+
+
+
+
+
+- MaskOnState (Train&Test) = False & CompositionLoss = True :
+
+Kalman Filter - MSE LOSS: tensor(25.2548) [dB]
+Kalman Filter - STD: tensor(2.5642) [dB]
+
+
+KalmanNet-MSE Test: tensor(18.0286) [dB]
+KalmanNet-STD Test: tensor(1.9163) [dB]
+
+Scheduler con factor = 0.05 & patience = 5 && gradient clipping con max_norm = 1
+
+
+
+
+
+
+
+- MaskOnState (Train) = False & MaskOnState (Test) = True & CompositionLoss = True :
+
+Kalman Filter - MSE LOSS: tensor(25.0865) [dB]
+Kalman Filter - STD: tensor(2.6553) [dB]
+
+KalmanNet-MSE Test: tensor(21.2110) [dB]
+KalmanNet-STD Test: tensor(2.2144) [dB]
+
+Scheduler con factor = 0.05 & patience = 10 && gradient clipping con max_norm = 2
+
+
+
+
+
+
+
+
+- MaskOnState (Train&Test) = True & CompositionLoss = True :
+
+Kalman Filter - MSE LOSS: tensor(25.2788) [dB]
+Kalman Filter - STD: tensor(2.3621) [dB]
+
+KalmanNet-MSE Test: tensor(20.3182) [dB]
+KalmanNet-STD Test: tensor(2.1489) [dB]
+
+Scheduler con factor = 0.05 & patience = 10 && gradient clipping con max_norm = 2
