@@ -7,39 +7,9 @@ import torch
 import torch.nn as nn
 import random
 import time
-import numpy as np
 from torch_optimizer import Lookahead
 import torch.optim.lr_scheduler as lr_scheduler
-
-class EarlyStopping:
-    def __init__(self, patience=10, delta=0):
-        self.patience = patience
-        self.delta = delta
-        self.best = None
-        self.counter = 0
-        self.stop = False
-        self.val_loss_min = np.inf
-
-
-    def __call__(self, val_loss, model):
-        score = -val_loss
-        if self.best is None:
-            self.best = score
-            self.save(val_loss, model)
-        elif score < self.best + self.delta:
-            self.counter += 1
-            if self.counter >= self.patience:
-                self.stop = True
-        else:
-            self.best = score
-            self.counter = 0
-            self.save(val_loss, model)
-
-
-    def save(self, val_loss, model):
-        torch.save(model.state_dict(), 'KNet/checkpoint.pt')
-        self.val_loss_min = val_loss
-
+from KNet.EarlyStop import EarlyStop
 
 
 
@@ -93,7 +63,7 @@ class Pipeline_EKF:
         self.MSE_cv_dB_epoch = torch.zeros([self.N_steps])
 
         scheduler = lr_scheduler.ReduceLROnPlateau(self.optimizer, mode='min', factor=0.05, patience=10)
-        early_stop = EarlyStopping(patience=20, delta=0.5)
+        early_stop = EarlyStop(patience=20, delta=0.5)
 
         if MaskOnState:
             mask = torch.tensor([True, False, True, False]) #stato = [px, vx, py, vy]
