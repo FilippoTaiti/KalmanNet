@@ -96,7 +96,7 @@ class KalmanFilter:
 
         # Generate in a batched manner
         for t in range(0, T):
-            yt = torch.unsqueeze(y[:, :, t],2)
+            yt = torch.unsqueeze(y[:, :, t],2) #yt ha shape [batch_size, n, 1]
             xt,sigmat = self.Update(yt)
-            self.x[:, :, t] = torch.squeeze(xt,2)
+            self.x[:, :, t] = torch.squeeze(xt,2) #xt è un vettore che ha shape [batch_size, m, 1] così diventa di shape [batch_size, m]
             self.sigma[:, :, :, t] = sigmat

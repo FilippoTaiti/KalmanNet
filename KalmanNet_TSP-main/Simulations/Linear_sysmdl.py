@@ -143,9 +143,13 @@ class SystemModel:
             mean = torch.zeros([size, self.n])
             distrib = MultivariateNormal(loc=mean, covariance_matrix=self.R)
             er_polar = distrib.rsample()
+            #print("er_polar: ", er_polar)
+            #print("er_polar.shape: ", er_polar.shape)
             rho += er_polar[:, 0]
             theta += er_polar[:, 1]
             yt_n = torch.stack([rho * torch.cos(theta), rho * torch.sin(theta)], dim=1)
+            #print("yt_n", yt_n)
+            #print("yt_n shape", yt_n.shape)
             yt = yt_n.unsqueeze(2)
 
             ########################
