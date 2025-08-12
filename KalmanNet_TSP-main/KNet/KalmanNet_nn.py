@@ -43,68 +43,61 @@ class KalmanNetNN(torch.nn.Module):
 
 
         # GRU to track Q
-        self.d_input_Q = self.m * in_mult_KNet
-        self.d_hidden_Q = self.m ** 2
+        self.d_input_Q = self.m * in_mult_KNet #4*5=20
+        self.d_hidden_Q = self.m ** 2 #4**2=16
         self.GRU_Q = nn.GRU(self.d_input_Q, self.d_hidden_Q).to(self.device)
 
         # GRU to track Sigma
-        self.d_input_Sigma = self.d_hidden_Q
-        self.d_hidden_Sigma = self.m ** 2
+        self.d_input_Sigma = self.d_hidden_Q #16
+        self.d_hidden_Sigma = self.m ** 2 #4**2 = 16
         self.GRU_Sigma = nn.GRU(self.d_input_Sigma, self.d_hidden_Sigma).to(self.device)
        
         # GRU to track S
-        self.d_input_S = self.n + 2 * self.n
-        #print("in mult knet: ", in_mult_KNet, "n: ", self.n)
-        self.d_hidden_S = self.n ** 2
+        self.d_input_S = self.n + 2 * self.n #2+2*2=6
+        self.d_hidden_S = self.n ** 2 #2**2=4
         self.GRU_S = nn.GRU(self.d_input_S, self.d_hidden_S).to(self.device)
         
         # Fully connected 1
-        self.d_input_FC1 = self.d_hidden_Sigma
-        self.d_output_FC1 = self.n ** 2
+        self.d_input_FC1 = self.d_hidden_Sigma #16
+        self.d_output_FC1 = self.n ** 2 #2**2 = 4
         self.FC1 = nn.Sequential(
                 nn.Linear(self.d_input_FC1, self.d_output_FC1),
                 nn.ReLU()).to(self.device)
 
         # Fully connected 2
-        self.d_input_FC2 = self.d_hidden_S + self.d_hidden_Sigma
-        self.d_output_FC2 = self.n * self.m
-        self.d_hidden_FC2 = self.d_input_FC2 * out_mult_KNet
+        self.d_input_FC2 = self.d_hidden_S + self.d_hidden_Sigma #4+16=20
+        self.d_output_FC2 = self.n * self.m #2*4=8
+        self.d_hidden_FC2 = self.d_input_FC2 * out_mult_KNet #20*40=8000
         self.FC2 = nn.Sequential(
                 nn.Linear(self.d_input_FC2, self.d_hidden_FC2),
                 nn.ReLU(),
                 nn.Linear(self.d_hidden_FC2, self.d_output_FC2)).to(self.device)
 
         # Fully connected 3
-        self.d_input_FC3 = self.d_hidden_S + self.d_output_FC2
-        self.d_output_FC3 = self.m ** 2
+        self.d_input_FC3 = self.d_hidden_S + self.d_output_FC2 #4+8=12
+        self.d_output_FC3 = self.m ** 2 #4**2=16
         self.FC3 = nn.Sequential(
                 nn.Linear(self.d_input_FC3, self.d_output_FC3),
                 nn.ReLU()).to(self.device)
 
         # Fully connected 4
-        self.d_input_FC4 = self.d_hidden_Sigma + self.d_output_FC3
-        self.d_output_FC4 = self.d_hidden_Sigma
+        self.d_input_FC4 = self.d_hidden_Sigma + self.d_output_FC3 #16+16=32
+        self.d_output_FC4 = self.d_hidden_Sigma #16
         self.FC4 = nn.Sequential(
                 nn.Linear(self.d_input_FC4, self.d_output_FC4),
                 nn.ReLU()).to(self.device)
         
         # Fully connected 5
-        self.d_input_FC5 = self.m
-        self.d_output_FC5 = self.m * in_mult_KNet
+        self.d_input_FC5 = self.m #4
+        self.d_output_FC5 = self.m * in_mult_KNet #4*5=20
         self.FC5 = nn.Sequential(
                 nn.Linear(self.d_input_FC5, self.d_output_FC5),
                 nn.ReLU()).to(self.device)
 
-        # Fully connected 6
-        self.d_input_FC6 = self.m
-        self.d_output_FC6 = self.m * in_mult_KNet
-        self.FC6 = nn.Sequential(
-                nn.Linear(self.d_input_FC6, self.d_output_FC6),
-                nn.ReLU()).to(self.device)
         
         # Fully connected 7
-        self.d_input_FC7 = self.n
-        self.d_output_FC7 = self.n
+        self.d_input_FC7 = self.n #2
+        self.d_output_FC7 = self.n #2
         self.FC7 = nn.Sequential(
                 nn.Linear(self.d_input_FC7, self.d_output_FC7),
                 nn.ReLU()).to(self.device)
@@ -160,7 +153,6 @@ class KalmanNetNN(torch.nn.Module):
         obs_diff = func.normalize(obs_diff, p=2, dim=1, eps=1e-12, out=None)
         obs_innov_diff = func.normalize(obs_innov_diff, p=2, dim=1, eps=1e-12, out=None)
         fw_evol_diff = func.normalize(fw_evol_diff, p=2, dim=1, eps=1e-12, out=None)
-        fw_update_diff = func.normalize(fw_update_diff, p=2, dim=1, eps=1e-12, out=None)
 
         # Kalman Gain Network Step
         KG = self.KGain_step(obs_diff, obs_innov_diff, fw_evol_diff)
@@ -207,7 +199,7 @@ class KalmanNetNN(torch.nn.Module):
             return expanded
 
         obs_diff = expand_dim(obs_diff)
-        obs_innov_diff = expand_dim(obs_innov_diff)
+        obs_innov_diff = expand_dim(obs_innov_diff) #F2
         fw_evol_diff = expand_dim(fw_evol_diff)
         tmp = torch.squeeze(self.m1x_prior_previous,2)
         tmp = expand_dim(tmp)
@@ -277,13 +269,13 @@ class KalmanNetNN(torch.nn.Module):
         weight = next(self.parameters()).data
         hidden = weight.new(self.seq_len_input, self.batch_size, self.d_hidden_S).zero_()
         self.h_S = hidden.data
-        self.h_S = self.prior_S.flatten().reshape(1, 1, -1).repeat(self.seq_len_input,self.batch_size, 1) # batch size expansion
+        self.h_S = self.prior_S.flatten().reshape(1, 1, -1).repeat(self.seq_len_input, self.batch_size, 1) # batch size expansion
         hidden = weight.new(self.seq_len_input, self.batch_size, self.d_hidden_Sigma).zero_()
         self.h_Sigma = hidden.data
-        self.h_Sigma = self.prior_Sigma.flatten().reshape(1,1, -1).repeat(self.seq_len_input,self.batch_size, 1) # batch size expansion
+        self.h_Sigma = self.prior_Sigma.flatten().reshape(1, 1, -1).repeat(self.seq_len_input, self.batch_size, 1) # batch size expansion
         hidden = weight.new(self.seq_len_input, self.batch_size, self.d_hidden_Q).zero_()
         self.h_Q = hidden.data
-        self.h_Q = self.prior_Q.flatten().reshape(1,1, -1).repeat(self.seq_len_input,self.batch_size, 1) # batch size expansion
+        self.h_Q = self.prior_Q.flatten().reshape(1, 1, -1).repeat(self.seq_len_input, self.batch_size, 1) # batch size expansion
 
 
 

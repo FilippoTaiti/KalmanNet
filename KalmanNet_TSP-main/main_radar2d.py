@@ -32,21 +32,21 @@ path_results = 'KNet/'
 
 
 ### dataset parameters ##################################################
-N_E = 1000
-N_CV = 100
-N_T = 100
+N_E = 1000  # Numero di sequenze del Training Set
+N_CV = 100  # Numero di sequenze del Validation Set
+N_T = 100   # Numero di sequenze del Test Set
 # init condition
 
 
 # sequence length
-T = 100
-T_test = 100
+T = 20
+T_test = 1000
 
 ### training parameters ##################################################
-n_steps = 10000
-n_batch = 30
-lr = 1e-4
-wd = 1e-3
+N_steps = 1000 # Numero epoche
+N_batch = 100 # Dimensione del singolo batch
+lr = 1e-3
+wd = 1e-4
 
 use_cuda = False
 
@@ -81,7 +81,7 @@ print("testset size:",test_target.size())
 loss_obs = nn.MSELoss(reduction='mean')
 MSE_obs_linear_arr = torch.empty(N_T)# MSE [Linear]
 for i in range(N_T):
-   mask = torch.tensor([True, True, False, False])
+   mask = torch.tensor([True, False, True, False])
    MSE_obs_linear_arr[i] = loss_obs(test_input[i], test_target[i][mask]).item()
 MSE_obs_linear_avg = torch.mean(MSE_obs_linear_arr)
 MSE_obs_dB_avg = 10 * torch.log10(MSE_obs_linear_avg)
@@ -116,8 +116,29 @@ print("Number of trainable parameters for KalmanNet:",sum(p.numel() for p in Kal
 KalmanNet_Pipeline = Pipeline_EKF(strTime, "KNet", "KalmanNet")
 KalmanNet_Pipeline.setssModel(sys_model)
 KalmanNet_Pipeline.setModel(KalmanNet_model)
-KalmanNet_Pipeline.setTrainingParams(1000, 100, 1e-3, 1e-4, 0.3)
+KalmanNet_Pipeline.setTrainingParams(N_steps, N_batch, lr, wd, 0.3)
 
 [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = KalmanNet_Pipeline.NNTrain(sys_model, cv_input, cv_target, train_input, train_target, path_results)
 [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,knet_out,RunTime] = KalmanNet_Pipeline.NNTest(sys_model, test_input, test_target, path_results)
 KalmanNet_Pipeline.save()
+
+
+plt.figure()
+plt.plot(range(N_steps), MSE_train_dB_epoch, 'b', label= "Training Loss")
+plt.plot(range(N_steps), MSE_cv_dB_epoch, 'g', label = "Cross Validation Loss")
+plt.xlabel("Training Epoch")
+plt.ylabel("MSE Loss")
+plt.show()
+plt.close()
+
+
+MSE_KF_db_arr = 10*torch.log10(MSE_KF_linear_arr)
+MSE_test_db_arr = 10*torch.log10(MSE_test_linear_arr)
+
+plt.figure()
+plt.plot(range(N_T), MSE_KF_db_arr, 'r', label= "KF Test Loss")
+plt.plot(range(N_T), MSE_test_db_arr, 'b', label= "KN Test Loss")
+plt.xlabel("Sequences")
+plt.ylabel("MSE Loss")
+plt.show()
+plt.close()

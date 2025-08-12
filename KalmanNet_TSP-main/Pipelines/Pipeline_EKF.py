@@ -7,9 +7,40 @@ import torch
 import torch.nn as nn
 import random
 import time
-from torch_optimizer import RAdam, Lookahead
-from Plot import Plot_extended
+import numpy as np
+from torch_optimizer import Lookahead
 import torch.optim.lr_scheduler as lr_scheduler
+
+class EarlyStopping:
+    def __init__(self, patience=10, delta=0):
+        self.patience = patience
+        self.delta = delta
+        self.best = None
+        self.counter = 0
+        self.stop = False
+        self.val_loss_min = np.inf
+
+
+    def __call__(self, val_loss, model):
+        score = -val_loss
+        if self.best is None:
+            self.best = score
+            self.save(val_loss, model)
+        elif score < self.best + self.delta:
+            self.counter += 1
+            if self.counter >= self.patience:
+                self.stop = True
+        else:
+            self.best = score
+            self.counter = 0
+            self.save(val_loss, model)
+
+
+    def save(self, val_loss, model):
+        torch.save(model.state_dict(), 'KNet/checkpoint.pt')
+        self.val_loss_min = val_loss
+
+
 
 
 class Pipeline_EKF:
@@ -62,6 +93,7 @@ class Pipeline_EKF:
         self.MSE_cv_dB_epoch = torch.zeros([self.N_steps])
 
         scheduler = lr_scheduler.ReduceLROnPlateau(self.optimizer, mode='min', factor=0.05, patience=10)
+        early_stop = EarlyStopping(patience=20, delta=0.5)
 
         if MaskOnState:
             mask = torch.tensor([True, False, True, False]) #stato = [px, vx, py, vy]
@@ -134,6 +166,7 @@ class Pipeline_EKF:
             # dB Loss
             self.MSE_train_linear_epoch[ti] = MSE_trainbatch_linear_LOSS.item()
             self.MSE_train_dB_epoch[ti] = 10 * torch.log10(self.MSE_train_linear_epoch[ti])
+            self.MSE_train_dB_epoch[ti] = torch.clamp(self.MSE_train_dB_epoch[ti], min=1e-7)
 
             ##################
             ### Optimizing ###
@@ -148,7 +181,7 @@ class Pipeline_EKF:
             # Backward pass: compute gradient of the loss with respect to model
             # parameters
             MSE_trainbatch_linear_LOSS.backward(retain_graph=True)
-            torch.nn.utils.clip_grad_norm_(self.model.parameters(), 2)
+            torch.nn.utils.clip_grad_norm_(self.model.parameters(), 1)
 
             # Calling the step function on an Optimizer makes an update to its
             # parameters
@@ -159,6 +192,7 @@ class Pipeline_EKF:
             ### Validation Sequence Batch ###
             #################################
 
+            valid_loss = 0
             # Cross Validation Mode
             self.model.eval()
             self.model.batch_size = self.N_CV
@@ -183,13 +217,23 @@ class Pipeline_EKF:
                 else:
                     MSE_cvbatch_linear_LOSS = self.loss_fn(x_out_cv_batch, cv_target)
 
+                valid_loss += MSE_cvbatch_linear_LOSS.item()
+                print(f'Epoch {ti}: Validation Loss: {valid_loss:.6f}')
+                early_stop(valid_loss, self.model)
+
+
+                if early_stop.stop:
+                    print('Early stopping')
+                    break
+
                 scheduler.step(MSE_trainbatch_linear_LOSS.item())
 
                 # dB Loss
                 self.MSE_cv_linear_epoch[ti] = MSE_cvbatch_linear_LOSS.item()
                 self.MSE_cv_dB_epoch[ti] = 10 * torch.log10(self.MSE_cv_linear_epoch[ti])
+                self.MSE_cv_dB_epoch[ti] = torch.clamp(self.MSE_cv_dB_epoch[ti], min=1e-7)
 
-                if (self.MSE_cv_dB_epoch[ti] < self.MSE_cv_dB_opt):
+                if self.MSE_cv_dB_epoch[ti] < self.MSE_cv_dB_opt:
                     self.MSE_cv_dB_opt = self.MSE_cv_dB_epoch[ti]
                     self.MSE_cv_idx_opt = ti
 
@@ -211,7 +255,7 @@ class Pipeline_EKF:
 
         return [self.MSE_cv_linear_epoch, self.MSE_cv_dB_epoch, self.MSE_train_linear_epoch, self.MSE_train_dB_epoch]
 
-    def NNTest(self, SysModel, test_input, test_target, path_results, MaskOnState=True, load_model=False,load_model_path=None):
+    def NNTest(self, SysModel, test_input, test_target, path_results, MaskOnState=False, load_model=False,load_model_path=None):
         # Load model
         if load_model:
             self.model = torch.load(load_model_path, map_location=self.device) 
@@ -248,10 +292,12 @@ class Pipeline_EKF:
 
         # MSE loss
         for j in range(self.N_T):# cannot use batch due to different length and std computation  
-            if(MaskOnState):
+            if MaskOnState:
                 self.MSE_test_linear_arr[j] = loss_fn(x_out_test[j,mask,:], test_target[j,mask,:]).item()
+
             else:
                 self.MSE_test_linear_arr[j] = loss_fn(x_out_test[j,:,:], test_target[j,:,:]).item()
+
         
         # Average
         self.MSE_test_linear_avg = torch.mean(self.MSE_test_linear_arr)
@@ -269,7 +315,6 @@ class Pipeline_EKF:
         str = self.modelName + "-" + "STD Test:"
         print(str, self.test_std_dB, "[dB]")
 
-        print("MSE_test_linear_arr: ", self.MSE_test_linear_arr)
         print("MSE_test_linear_std: ", torch.mean(self.MSE_test_linear_arr))
         print("MSE_test_linear_std: ", self.MSE_test_linear_std)
 
@@ -280,11 +325,3 @@ class Pipeline_EKF:
 
         return [self.MSE_test_linear_arr, self.MSE_test_linear_avg, self.MSE_test_dB_avg, x_out_test, t]
 
-    def PlotTrain_KF(self, MSE_KF_linear_arr, MSE_KF_dB_avg):
-
-        self.Plot = Plot_extended(self.folderName, self.modelName)
-
-        self.Plot.NNPlot_epochs(self.N_steps, MSE_KF_dB_avg,
-                                self.MSE_test_dB_avg, self.MSE_cv_dB_epoch, self.MSE_train_dB_epoch)
-
-        self.Plot.NNPlot_Hist(MSE_KF_linear_arr, self.MSE_test_linear_arr)
