@@ -8,7 +8,6 @@ class EarlyStop:
         self.best = None
         self.count = 0
         self.stop = False
-        self.val_loss_min = np.inf
 
 
     def __call__(self, val_loss, model):
@@ -28,4 +27,3 @@ class EarlyStop:
 
     def save(self, val_loss, model):
         torch.save(model.state_dict(), 'KNet/checkpoint.pt')
-        self.val_loss_min = val_loss
