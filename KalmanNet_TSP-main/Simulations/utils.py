@@ -6,6 +6,7 @@ import random
 import torch
 import matplotlib.pyplot as plt
 
+
 def DataGen(SysModel_data, fileName, N_E, N_CV, N_T, T, T_min, T_test, randomLength):
 
     ##################################
@@ -82,6 +83,7 @@ def DataTestGen(SysModel_data, fileName, N_T, T_min, T_test, randomLength):
 
 def plot_results(trajectories, KF_trajectories, KNet_trajectories, N_T):
 
+
     for i in range(N_T):
         traj = trajectories[i, [0, 2], :]
         KF_traj = KF_trajectories[i, [0, 2], :]
@@ -113,7 +115,9 @@ def plot_results(trajectories, KF_trajectories, KNet_trajectories, N_T):
         axis[2].plot(list(KNet_traj_x), list(KNet_traj_y), lw=3, color = 'blue')
         axis[2].set_title('KNet Trajectory', fontsize=10)
 
+
         plt.show()
+        plt.close(figure)
 
 
 

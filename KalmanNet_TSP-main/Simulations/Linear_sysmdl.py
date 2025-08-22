@@ -15,9 +15,10 @@ from torch.distributions.multivariate_normal import MultivariateNormal
 import matplotlib.pyplot as plt
 
 
+
 class SystemModel:
 
-    def __init__(self, F, Q, H, R, T, T_test, prior_Q=None, prior_Sigma=None, prior_S=None):
+    def __init__(self, F, Q, H, R, T_test, T=None, prior_Q=None, prior_Sigma=None, prior_S=None):
 
         ####################
         ### Motion Model ###
@@ -178,7 +179,7 @@ class SystemModel:
             self.m1x_0_rand[i, :, 0:1] = initConditions
 
         self.Init_batched_sequence(self.m1x_0_rand, self.m2x_0)
-        #print(self.m1x_0_rand)
+        print(self.m1x_0_rand)
 
         if randomLength:
             # Allocate Empty Array for Input
@@ -274,6 +275,7 @@ def plot_testset(test_input, test_target, size):
     X_batch_target = []
     Y_batch_target = []
 
+
     for b_i in range(size):
         X_input = test_input[b_i, 0, :]
         Y_input = test_input[b_i, 1, :]
@@ -292,7 +294,8 @@ def plot_testset(test_input, test_target, size):
         axes.plot(X_batch_input[i], Y_batch_input[i], 'y', label="Input Sequences")
         axes.plot(X_batch_target[i], Y_batch_target[i], 'g', label="Target Sequences")
         plt.show()
-        plt.close()
+        plt.close(figure)
+
 
 
 

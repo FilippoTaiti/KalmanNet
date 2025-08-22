@@ -26,7 +26,7 @@ class KalmanNetNN(torch.nn.Module):
         # Number of neurons in the 2nd hidden layer
         #H2_KNet = (SysModel.m * SysModel.n) * 1 * (4)
 
-        self.InitKGainNet(SysModel.prior_Q, SysModel.prior_Sigma, SysModel.prior_S, 20, 5, 40)
+        self.InitKGainNet(SysModel.prior_Q, SysModel.prior_Sigma, SysModel.prior_S, 100, 5, 40)
 
     ######################################
     ### Initialize Kalman Gain Network ###
@@ -143,19 +143,13 @@ class KalmanNetNN(torch.nn.Module):
     ### Kalman Gain Estimation ###
     ##############################
     def step_KGain_est(self, y):
-        # both in size [batch_size, n]
-        obs_diff = torch.squeeze(y,2) - torch.squeeze(self.y_previous,2) #F1
+      #[batch_size, n]
         obs_innov_diff = torch.squeeze(y,2) - torch.squeeze(self.m1y,2) #F2
-        # both in size [batch_size, m]
-        fw_evol_diff = torch.squeeze(self.m1x_posterior,2) - torch.squeeze(self.m1x_posterior_previous,2) #F3
-        fw_update_diff = torch.squeeze(self.m1x_posterior,2) - torch.squeeze(self.m1x_prior_previous,2) #F4
 
-        obs_diff = func.normalize(obs_diff, p=2, dim=1, eps=1e-12, out=None)
         obs_innov_diff = func.normalize(obs_innov_diff, p=2, dim=1, eps=1e-12, out=None)
-        fw_evol_diff = func.normalize(fw_evol_diff, p=2, dim=1, eps=1e-12, out=None)
 
         # Kalman Gain Network Step
-        KG = self.KGain_step(obs_diff, obs_innov_diff, fw_evol_diff)
+        KG = self.KGain_step(obs_innov_diff)
 
         # Reshape Kalman Gain to a Matrix
         self.KGain = torch.reshape(KG, (self.batch_size, self.m, self.n))
@@ -191,16 +185,17 @@ class KalmanNetNN(torch.nn.Module):
     ########################
     ### Kalman Gain Step ###
     ########################
-    def KGain_step(self, obs_diff, obs_innov_diff, fw_evol_diff):
+    def KGain_step(self, obs_innov_diff):
 
         def expand_dim(x):
+            #print("x shape", x.shape)
+            #print("self seq len input: ", self.seq_len_input, "self  batch size: ", self.batch_size, "xshape[-1]: ", x.shape[-1])
             expanded = torch.empty(self.seq_len_input, self.batch_size, x.shape[-1]).to(self.device)
             expanded[0, :, :] = x
             return expanded
 
-        obs_diff = expand_dim(obs_diff)
+
         obs_innov_diff = expand_dim(obs_innov_diff) #F2
-        fw_evol_diff = expand_dim(fw_evol_diff)
         tmp = torch.squeeze(self.m1x_prior_previous,2)
         tmp = expand_dim(tmp)
 
