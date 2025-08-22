@@ -69,7 +69,7 @@ m2_0 = random.uniform(1, 100) * torch.eye(m)
 
 
 ### True model ##################################################
-sys_model = SystemModel(F, Q, H, R, T, T_test)
+sys_model = SystemModel(F, Q, H, R, T_test, T)
 sys_model.InitSequence(m1_0, m2_0)
 
 ###################################
@@ -167,11 +167,6 @@ plt.grid(True)
 plt.show()
 plt.close()
 
-
-if torch.allclose(KalmanGainKF, KalmanGainKN):
-   print("KalmanNet is similar to Kalman Filter")
-else:
-   print("KalmanNet is better than Kalman Filter")
 
 
 plot_testset(test_input, test_target, N_T)

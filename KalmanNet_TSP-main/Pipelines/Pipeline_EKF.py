@@ -348,9 +348,9 @@ class Pipeline_EKF:
         self.test_std_dB = 10 * torch.log10(self.MSE_test_linear_std + self.MSE_test_linear_avg) - self.MSE_test_dB_avg
 
         # Print MSE and std
-        str = self.modelName + "-" + "MSE Test:"
+        str = self.modelName + "-" + "MSE LOSS:"
         print(str, self.MSE_test_dB_avg, "[dB]")
-        str = self.modelName + "-" + "STD Test:"
+        str = self.modelName + "-" + "STD:"
         print(str, self.test_std_dB, "[dB]")
         # Print Run Time
         print("Inference Time:", t)
