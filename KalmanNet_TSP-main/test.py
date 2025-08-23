@@ -133,6 +133,9 @@ def test(T_min, T_test):
    plt.show()
    plt.close()
 
+   print("MSE TOT KF: ", sum(MSE_KF_db_arr), " MSE TOT KNet: ", sum(MSE_test_db_arr))
+   print("MSE AVG KF: ", sum(MSE_KF_db_arr)/len(MSE_KF_db_arr), " MSE AVG KNet: ", sum(MSE_test_db_arr)/len(MSE_test_db_arr))
+
 
    plot_testset(test_input, test_target, N_T)
    knet_out = knet_out.detach_().numpy()

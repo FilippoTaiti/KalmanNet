@@ -179,7 +179,7 @@ class SystemModel:
             self.m1x_0_rand[i, :, 0:1] = initConditions
 
         self.Init_batched_sequence(self.m1x_0_rand, self.m2x_0)
-        print(self.m1x_0_rand)
+        #print(self.m1x_0_rand)
 
         if randomLength:
             # Allocate Empty Array for Input
