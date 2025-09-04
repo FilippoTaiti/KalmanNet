@@ -15,7 +15,7 @@ class KalmanFilter:
 
         self.H = SystemModel.H
         self.n = SystemModel.n
-        self.R = SystemModel.R.to(self.device)
+        self.R = SystemModel.R_kf.to(self.device)
 
         self.T = SystemModel.T
         self.T_test = SystemModel.T_test

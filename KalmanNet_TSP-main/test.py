@@ -8,14 +8,14 @@ import matplotlib.pyplot as plt
 
 from Simulations.Linear_sysmdl import SystemModel, plot_testset
 from Simulations.utils import DataTestGen, plot_results
-from Simulations.Radar_2d.parameters import F, H, Q, R, m
+from Simulations.Radar_2d.parameters import F, H, Q, R_kf, R_Knet, m
 
 from Filters.KalmanFilter_test import KFTest
 
 from KNet.KalmanNet_nn import KalmanNetNN
 
 from Pipelines.Pipeline_EKF import Pipeline_EKF
-def test(T_min, T_test):
+def test(T_test, T_min=10):
    print("Pipeline Start")
 
    ################
@@ -50,13 +50,14 @@ def test(T_min, T_test):
 
    device = torch.device('cpu')
 
-   m1_0 = torch.randn(m, 1)
-   m2_0 = random.uniform(1, 100) * torch.eye(m)
+   m1_0 = torch.zeros(m, 1)
+   m2_0 = 1 * torch.eye(m)
 
 
    ### True model ##################################################
-   sys_model = SystemModel(F, Q, H, R, T_test)
+   sys_model = SystemModel(F, Q, H, R_kf, R_Knet, T_test)
    sys_model.InitSequence(m1_0, m2_0)
+
 
    ###################################
    ### Data Loader (Generate Data) ###
@@ -89,8 +90,8 @@ def test(T_min, T_test):
    # Confidence interval
    obs_std_dB = 10 * torch.log10(MSE_obs_linear_std + MSE_obs_linear_avg) - MSE_obs_dB_avg
 
-   print("Observation Noise Floor - MSE LOSS:", MSE_obs_dB_avg, "[dB]")
-   print("Observation Noise Floor - STD:", obs_std_dB, "[dB]")
+   print("--Observation Noise Floor - MSE LOSS:", MSE_obs_dB_avg, "[dB]")
+   print("--Observation Noise Floor - STD:", obs_std_dB, "[dB]")
 
    print("Evaluate Kalman Filter True")
    if randomLength:
@@ -137,18 +138,17 @@ def test(T_min, T_test):
    print("MSE AVG KF: ", sum(MSE_KF_db_arr)/len(MSE_KF_db_arr), " MSE AVG KNet: ", sum(MSE_test_db_arr)/len(MSE_test_db_arr))
 
 
-   plot_testset(test_input, test_target, N_T)
+   #plot_testset(test_input, test_target, N_T, randomLength)
    knet_out = knet_out.detach_().numpy()
-   plot_results(test_target, KF_out, knet_out, N_T)
+   if randomLength:
+       plot_results(test_target, KF_out, knet_out, N_T, randomLength, test_lengthMask)
+   else:
+       plot_results(test_target, KF_out, knet_out, N_T, randomLength)
 
 
 
+test(50)
 
-
-for i in range(100, 1000+1, 100):
-   print("Test con sequenze di lunghezza nell'intervallo [", i, ", ", 1000, "]")
-   test(i, 1000)
-   print("\n")
 
 
 

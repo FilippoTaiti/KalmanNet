@@ -59,7 +59,7 @@ class Pipeline_EKF:
         self.MSE_cv_dB_epoch = torch.zeros([self.N_steps])
 
         scheduler = lr_scheduler.ReduceLROnPlateau(self.optimizer, mode='min', factor=0.05, patience=10)
-        early_stop = EarlyStop(patience=40, delta=0)
+        early_stop = EarlyStop(patience=100, delta=0)
 
         self.MSE_train_linear_epoch = torch.zeros([self.N_steps])
         self.MSE_train_dB_epoch = torch.zeros([self.N_steps])
@@ -349,11 +349,11 @@ class Pipeline_EKF:
 
         # Print MSE and std
         str = self.modelName + "-" + "MSE LOSS:"
-        print(str, self.MSE_test_dB_avg, "[dB]")
+        print("--", str, self.MSE_test_dB_avg, "[dB]")
         str = self.modelName + "-" + "STD:"
-        print(str, self.test_std_dB, "[dB]")
+        print("--", str, self.test_std_dB, "[dB]")
         # Print Run Time
-        print("Inference Time:", t)
+        #print("Inference Time:", t)
 
         KalmanGainKN = self.model.KGain
 
