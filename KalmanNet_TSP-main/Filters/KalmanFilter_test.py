@@ -11,7 +11,7 @@ def KFTest(SysModel, N_T, T_test, test_input, test_target, randomLength, test_le
     # MSE [Linear]
     MSE_KF_linear_arr = torch.zeros(N_T)
     # allocate memory for KF output
-    start = time.time()
+    #start = time.time()
 
     KF = KalmanFilter(SysModel)
     # Init and Forward Computation 
@@ -19,8 +19,8 @@ def KFTest(SysModel, N_T, T_test, test_input, test_target, randomLength, test_le
     KF.Init_batched_sequence(SysModel.m1x_0.view(1,SysModel.m,1).expand(N_T,-1,-1), SysModel.m2x_0.view(1,SysModel.m,SysModel.m).expand(N_T,-1,-1))
     KF.GenerateBatch(test_input)
     
-    end = time.time()
-    t = end - start
+    #end = time.time()
+    #t = end - start
     KF_out = KF.x
     # MSE loss
     for j in range(N_T):# cannot use batch due to different length and std computation
@@ -41,10 +41,10 @@ def KFTest(SysModel, N_T, T_test, test_input, test_target, randomLength, test_le
 
     KalmanGain = KF.KG
 
-    print("Kalman Filter - MSE LOSS:", MSE_KF_dB_avg, "[dB]")
-    print("Kalman Filter - STD:", KF_std_dB, "[dB]")
+    print("--Kalman Filter - MSE LOSS:", MSE_KF_dB_avg, "[dB]")
+    print("--Kalman Filter - STD:", KF_std_dB, "[dB]")
     # Print Run Time
-    print("Inference Time:", t)
+    #print("Inference Time:", t)
     return [MSE_KF_linear_arr, MSE_KF_linear_avg, MSE_KF_dB_avg, KF_out, KalmanGain]
 
 

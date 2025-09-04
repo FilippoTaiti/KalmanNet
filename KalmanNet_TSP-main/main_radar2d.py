@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 
 from Simulations.Linear_sysmdl import SystemModel, plot_testset
 from Simulations.utils import DataGen, plot_results
-from Simulations.Radar_2d.parameters import F, H, Q, R, m
+from Simulations.Radar_2d.parameters import F, H, Q, R_kf, R_Knet, m
 
 from Filters.KalmanFilter_test import KFTest
 
@@ -36,20 +36,20 @@ path_results = 'KNet/'
 
 
 ### dataset parameters ##################################################
-N_E = 2000  # Numero di sequenze del Training Set
-N_CV = 500  # Numero di sequenze del Validation Set
-N_T = 500   # Numero di sequenze del Test Set
+N_E = 4000  # Numero di sequenze del Training Set
+N_CV = 1000  # Numero di sequenze del Validation Set
+N_T = 1000   # Numero di sequenze del Test Set
 # init condition
 
 
 # sequence length
 T = 50 #Lunghezza delle sequenze di training e di validation
-T_test = 100 #lunghezza delle sequenze di test
+T_test = 50 #lunghezza delle sequenze di test
 
 T_min = 10
 #T_max = 50
 
-randomLength = True
+randomLength = False
 MaskOnState = False
 CompositionLoss = True
 
@@ -64,12 +64,12 @@ use_cuda = False
 device = torch.device('cpu')
 print("Using CPU")
 
-m1_0 = torch.randn(m, 1)
-m2_0 = random.uniform(1, 100) * torch.eye(m)
+m1_0 = torch.zeros(m, 1)
+m2_0 = 1 * torch.eye(m)
 
 
 ### True model ##################################################
-sys_model = SystemModel(F, Q, H, R, T_test, T)
+sys_model = SystemModel(F, Q, H, R_kf, R_Knet, T_test, T)
 sys_model.InitSequence(m1_0, m2_0)
 
 ###################################
@@ -169,9 +169,12 @@ plt.close()
 
 
 
-plot_testset(test_input, test_target, N_T)
+#plot_testset(test_input, test_target, N_T)
 knet_out = knet_out.detach_().numpy()
-plot_results(test_target, KF_out, knet_out, N_T)
+if randomLength:
+    plot_results(test_target, KF_out, knet_out, N_T, randomLength, test_lengthMask)
+else:
+    plot_results(test_target, KF_out, knet_out, N_T, randomLength)
 
 
 

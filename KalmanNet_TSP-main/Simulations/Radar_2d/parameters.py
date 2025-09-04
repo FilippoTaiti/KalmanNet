@@ -46,8 +46,12 @@ H = torch.tensor([
 Q = 5*torch.tensor([[(dt**3)/3, (dt**2)/2, 0, 0],[(dt**2)/2, dt, 0, 0], [0, 0, (dt**3)/3, (dt**2)/2], [0, 0, (dt**2)/2, dt]]).float()
 
 #matrice di covarianza del disturbo di misura
-r = torch.tensor([100, 0.0002]).float()
-R = torch.diag(r)
+r_knet = torch.tensor([100, 0.0002]).float()
+R_Knet = torch.diag(r_knet)
+
+r_kf = torch.tensor([50**2, 50**2]).float()
+R_kf = torch.diag(r_kf)
+
 
 
 
