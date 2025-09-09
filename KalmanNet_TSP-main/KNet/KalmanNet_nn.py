@@ -18,7 +18,7 @@ class KalmanNetNN(torch.nn.Module):
 
         self.InitSystemDynamics(SysModel.f, SysModel.h, SysModel.m, SysModel.n)
 
-        self.InitKGainNet(SysModel.prior_Q, SysModel.prior_Sigma, SysModel.prior_S, 100, 100, 80)
+        self.InitKGainNet(SysModel.prior_Q, SysModel.prior_Sigma, SysModel.prior_S, 100, 100, 100)
 
     ######################################
     ### Initialize Kalman Gain Network ###

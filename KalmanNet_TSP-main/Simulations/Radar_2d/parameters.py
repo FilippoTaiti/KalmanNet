@@ -42,14 +42,14 @@ H = torch.tensor([
     [0, 0, 1, 0],  # py
 ]).float()
 
-#MATRICE DI COVARIANZA DEL DISTURBO DI PROCESSO
+#MATRICE DI COVARIANZA DEL DISTURBO SULLO STATO
 Q = 5*torch.tensor([[(dt**3)/3, (dt**2)/2, 0, 0],[(dt**2)/2, dt, 0, 0], [0, 0, (dt**3)/3, (dt**2)/2], [0, 0, (dt**2)/2, dt]]).float()
 
-#matrice di covarianza del disturbo di misura
-r_knet = torch.tensor([100, 0.0002]).float()
+#matrici di covarianza del disturbo di misura
+r_knet = torch.tensor([4, 0.0002]).float()
 R_Knet = torch.diag(r_knet)
 
-r_kf = torch.tensor([50**2, 50**2]).float()
+r_kf = torch.tensor([0.21**2, 0.21**2]).float()
 R_kf = torch.diag(r_kf)
 
 

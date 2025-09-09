@@ -7,14 +7,14 @@ import matplotlib.pyplot as plt
 
 
 from Simulations.Linear_sysmdl import SystemModel, plot_testset
-from Simulations.utils import DataTestGen, plot_results
+from Simulations.utils import DataTestGen, plot_results, plotSquaredError, plotBoxPlot
 from Simulations.Radar_2d.parameters import F, H, Q, R_kf, R_Knet, m
 
 from Filters.KalmanFilter_test import KFTest
 
 from KNet.KalmanNet_nn import KalmanNetNN
 
-from Pipelines.Pipeline_EKF import Pipeline_EKF
+from Pipelines.Pipeline import Pipeline_EKF
 def test(T_test, T_min=10):
    print("Pipeline Start")
 
@@ -30,13 +30,12 @@ def test(T_test, T_min=10):
    path_results = 'KNet/'
 
    ### dataset parameters ##################################################
-   N_T = 10   # Numero di sequenze del Test Set
+   N_T = 20000  # Numero di sequenze del Test Set
    # init condition
 
 
 
-   randomLength = True
-   MaskOnState = False
+   randomLength = False
 
 
    #Questi parametri di training ce li ho lasciati per adesso ma qui non vengono usati, qui vengono solo fatti i test
@@ -67,10 +66,7 @@ def test(T_test, T_min=10):
    print("Start Test Data Gen")
    DataTestGen(sys_model, dataFolderName+dataFileName, N_T, T_min, T_test, randomLength)
    print("Test Data Load")
-   if randomLength:
-      [test_input, test_target, _, test_lengthMask] = torch.load(dataFolderName + dataFileName, map_location=device)
-   else:
-      [test_input, test_target,_] = torch.load(dataFolderName + dataFileName, map_location=device)
+   [test_input, test_target,_] = torch.load(dataFolderName + dataFileName, map_location=device)
 
    ########################################
    ### Evaluate Observation Noise Floor ###
@@ -94,10 +90,7 @@ def test(T_test, T_min=10):
    print("--Observation Noise Floor - STD:", obs_std_dB, "[dB]")
 
    print("Evaluate Kalman Filter True")
-   if randomLength:
-      [MSE_KF_linear_arr, _, _, KF_out, KalmanGainKF] = KFTest(sys_model, N_T, T_test, test_input, test_target, randomLength, test_lengthMask=test_lengthMask)
-   else:
-      [MSE_KF_linear_arr, _, _, KF_out, KalmanGainKF] = KFTest(sys_model, N_T, T_test, test_input, test_target, randomLength)
+   [MSE_KF_linear_arr, _, _, KF_out, KalmanGainKF, squaredErrorKF] = KFTest(sys_model, N_T, T_test, test_input, test_target)
 
 
    ##########################
@@ -116,10 +109,7 @@ def test(T_test, T_min=10):
    KalmanNet_Pipeline.setModel(KalmanNet_model)
    KalmanNet_Pipeline.setTrainingParams(N_steps, N_batch, lr, wd, 0.3)
 
-   if randomLength:
-      [MSE_test_linear_arr, _, _,knet_out, _, _] = KalmanNet_Pipeline.NNTest(sys_model, test_input, test_target, path_results, randomLength, MaskOnState, test_lengthMask)
-   else:
-      [MSE_test_linear_arr, _, _, knet_out, _, _] = KalmanNet_Pipeline.NNTest(sys_model, test_input, test_target, path_results, randomLength, MaskOnState)
+   [MSE_test_linear_arr, _, _, knet_out, _, _, squaredErrorKNet] = KalmanNet_Pipeline.NNTest(sys_model, test_input, test_target, path_results)
 
 
    MSE_KF_db_arr = 10*torch.log10(MSE_KF_linear_arr)
@@ -132,18 +122,15 @@ def test(T_test, T_min=10):
    plt.ylabel("MSE Loss")
    plt.grid(True)
    plt.show()
-   plt.close()
+   plt.close('all')
 
-   print("MSE TOT KF: ", sum(MSE_KF_db_arr), " MSE TOT KNet: ", sum(MSE_test_db_arr))
-   print("MSE AVG KF: ", sum(MSE_KF_db_arr)/len(MSE_KF_db_arr), " MSE AVG KNet: ", sum(MSE_test_db_arr)/len(MSE_test_db_arr))
 
 
    #plot_testset(test_input, test_target, N_T, randomLength)
-   knet_out = knet_out.detach_().numpy()
-   if randomLength:
-       plot_results(test_target, KF_out, knet_out, N_T, randomLength, test_lengthMask)
-   else:
-       plot_results(test_target, KF_out, knet_out, N_T, randomLength)
+   #knet_out = knet_out.detach_().numpy()
+   plot_results(test_target, KF_out, knet_out, N_T)
+   plotBoxPlot(MSE_obs_dB_arr, MSE_KF_db_arr, MSE_test_db_arr)
+   plotSquaredError(squaredErrorKF, squaredErrorKNet, N_T)
 
 
 

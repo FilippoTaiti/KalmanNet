@@ -81,183 +81,77 @@ class SystemModel:
 
         self.R = R'''
 
-    def GenerateSequence(self, Q_gen, R_gen, T):
-        # Pre allocate an array for current state
-        self.x = torch.zeros(size=[self.m, T])
-        # Pre allocate an array for current observation
-        self.y = torch.zeros(size=[self.n, T])
-        # Set x0 to be x previous
-        self.x_prev = self.m1x_0
-        xt = self.x_prev
-
-        # Generate in a batched manner
-        for t in range(0, T):
-            ########################
-            #### State Evolution ###
-            ########################
-
-            xt = self.F.matmul(self.x_prev)
-            mean = torch.zeros([self.m])
-            distrib = MultivariateNormal(loc=mean, covariance_matrix=Q_gen)
-            eq = distrib.rsample().view(self.m, 1)
-            # Additive Process Noise
-            xt = torch.add(xt, eq)
-            #print("xt shape: ")
-
-            ################
-            ### Emission ###
-            ################
-            # Observation Noise
-
-            #print("H shape: ", self.H.shape)
-            #print("xt shape: ", xt.shape)
-            tmp = self.H.matmul(xt).squeeze(0)
-            #print("tmp shape: ", tmp.shape)
-            yt = tmp.unsqueeze(2)
-            #print("yt shape: ", yt.shape)
-            #print("yt: ", yt)
-            # print("yt: ", yt)
-            # print("yt size: ", yt.size())
-            rho = torch.sqrt(torch.add(torch.pow(yt[0], 2), torch.pow(yt[1], 2)))
-            #print("rho shape: ", rho.shape)
-            theta = torch.atan2(yt[1], yt[0])
-            #print("theta shape: ", theta.shape)
-            mean = torch.zeros([self.n])
-            distrib = MultivariateNormal(loc=mean, covariance_matrix=R_gen)
-            er_polar = distrib.rsample()
-            # print("er_polar: ", er_polar)
-            #print("er_polar.shape: ", er_polar.shape)
-            rho += er_polar[0]
-            theta += er_polar[1]
-            yt = torch.stack([rho * torch.cos(theta), rho * torch.sin(theta)], dim=1)
-            # print("yt_n", yt_n)
-            # print("yt_n shape", yt_n.shape)
-            #print("yt shape: ", yt.shape)
-
-            ########################
-            ### Squeeze to Array ###
-            ########################
-
-            # Save Current State to Trajectory Array
-            self.x[:, t] = torch.squeeze(xt, 1)
-
-            # Save Current Observation to Trajectory Array
-            #print("self.y shape: ", self.y.shape)
-            tmp = yt.squeeze(2)
-            #print("tmp pt1 shape: ", tmp.shape)
-            yt = tmp.squeeze(1)
-            #print("tmp pt2 shape: ", tmp.shape)
-            self.y[:, t] = tmp
-
-            ################################
-            ### Save Current to Previous ###
-            ################################
-            self.x_prev = xt
-
     ######################
     ### Generate Batch ###
     ######################
     def GenerateBatch(self, size, T, T_min, test=False, randomLength=False):
 
         self.m1x_0_rand = torch.zeros(size, self.m, 1)
+        distrib = MultivariateNormal(loc=torch.squeeze(self.m1x_0), covariance_matrix=self.m2x_0)
         for i in range(size):
-            distrib = MultivariateNormal(loc=torch.squeeze(self.m1x_0), covariance_matrix = self.m2x_0)
-            #print(distrib.rsample().shape)
             initConditions = distrib.rsample().view(self.m, 1)
-            #print(initConditions.shape)
+            #print("distrib: ", distrib.rsample())
             self.m1x_0_rand[i, :, 0:1] = initConditions
 
         self.Init_batched_sequence(self.m1x_0_rand, self.m2x_0)
         #print(self.m1x_0_rand)
 
-        if randomLength:
-            # Allocate Empty Array for Input
-            self.Input = torch.empty(size, self.n, T)
-            # Allocate Empty Array for Target
-            self.Target = torch.empty(size, self.m, T)
-            self.lengthMask = torch.zeros((size, T), dtype=torch.bool)  # init with all false
-            # Init Sequence Lengths
-            T_tensor = torch.round((T - T_min) * torch.rand(size)).int() + T_min  # Uniform distribution [100,1000]
-            #print("T_tensor: ", T_tensor)
-            for i in range(0, size):
-                # Generate Sequence
-                self.GenerateSequence(self.Q, self.R_Knet, T_tensor[i].item())
-                # Training sequence input
-                self.Input[i, :, 0:T_tensor[i].item()] = self.y
-                #--print("input: ", self.Input)
-                # Training sequence output
-                self.Target[i, :, 0:T_tensor[i].item()] = self.x
-                # Mask for sequence length
-                self.lengthMask[i, 0:T_tensor[i].item()] = True
+        # Allocate Empty Array for Input
+        self.Input = torch.empty(size, self.n, T)
+        # Allocate Empty Array for Target
+        self.Target = torch.empty(size, self.m, T)
+        # Set x0 to be x previous
+        self.x_prev = self.m1x_0_batch
+        xt = self.x_prev
+        # Generate in a batched manner
+        for t in range(0, T):
+            ########################
+            #### State Evolution ###
+            ########################
+            xt = self.f(self.x_prev)
+            mean = torch.zeros([size, self.m])
+            distrib = MultivariateNormal(loc=mean, covariance_matrix=self.Q)
+            eq = distrib.rsample().view(size, self.m, 1)
+            # Additive Process Noise
+            xt = torch.add(xt, eq)
+            ################
+            ### Emission ###
+            ################
+            # Observation Noise
+            yt = self.H.matmul(xt).squeeze(2)
+            #print("yt shape: ", yt.shape)
+            #print("yt: ", yt)
+            #print("yt size: ", yt.size())
+            rho = torch.sqrt(yt[:, 0] ** 2 + yt[:, 1] ** 2)
+            #print("rho: ", rho)
+            theta = torch.atan2(yt[:, 1], yt[:, 0])
+            #print("theta: ", theta)
+            mean = torch.zeros([size, self.n])
+            distrib = MultivariateNormal(loc=mean, covariance_matrix=self.R_Knet)
+            er_polar = distrib.rsample()
+            #print("er_polar: ", er_polar)
+            #print("er_polar.shape: ", er_polar.shape)
+            rho += er_polar[:, 0]
+            theta += er_polar[:, 1]
+            yt_n = torch.stack([rho * torch.cos(theta), rho * torch.sin(theta)], dim=1)
+            #print("yt_n", yt_n)
+            #print("yt_n shape", yt_n.shape)
+            yt = yt_n.unsqueeze(2)
+            ########################
+            ### Squeeze to Array ###
+            ########################
+            # Save Current State to Trajectory Array
+            self.Target[:, :, t] = torch.squeeze(xt, 2)
+            # Save Current Observation to Trajectory Array
+            self.Input[:, :, t] = torch.squeeze(yt, 2)
+            ################################
+            ### Save Current to Previous ###
+            ################################
+            self.x_prev = xt
 
-        else:
+        '''if test:
+            plot_testset(self.Input, self.Target, size)'''
 
-            # Allocate Empty Array for Input
-            self.Input = torch.empty(size, self.n, T)
-            # Allocate Empty Array for Target
-            self.Target = torch.empty(size, self.m, T)
-
-            # Set x0 to be x previous
-            self.x_prev = self.m1x_0_batch
-            #xt = self.x_prev
-
-            # Generate in a batched manner
-            for t in range(0, T):
-                ########################
-                #### State Evolution ###
-                ########################
-
-                xt = self.f(self.x_prev)
-                mean = torch.zeros([size, self.m])
-                distrib = MultivariateNormal(loc=mean, covariance_matrix=self.Q)
-                eq = distrib.rsample().view(size, self.m, 1)
-                # Additive Process Noise
-                xt = torch.add(xt, eq)
-
-                ################
-                ### Emission ###
-                ################
-                # Observation Noise
-
-                yt = self.H.matmul(xt).squeeze(2)
-                #print("yt shape: ", yt.shape)
-                #print("yt: ", yt)
-                #print("yt size: ", yt.size())
-                rho = torch.sqrt(yt[:, 0] ** 2 + yt[:, 1] ** 2)
-                #print("rho: ", rho)
-                theta = torch.atan2(yt[:, 1], yt[:, 0])
-                #print("theta: ", theta)
-                mean = torch.zeros([size, self.n])
-                distrib = MultivariateNormal(loc=mean, covariance_matrix=self.R_Knet)
-                er_polar = distrib.rsample()
-                #print("er_polar: ", er_polar)
-                #print("er_polar.shape: ", er_polar.shape)
-                rho += er_polar[:, 0]
-                theta += er_polar[:, 1]
-                yt_n = torch.stack([rho * torch.cos(theta), rho * torch.sin(theta)], dim=1)
-                #print("yt_n", yt_n)
-                #print("yt_n shape", yt_n.shape)
-                yt = yt_n.unsqueeze(2)
-
-                ########################
-                ### Squeeze to Array ###
-                ########################
-
-                # Save Current State to Trajectory Array
-                self.Target[:, :, t] = torch.squeeze(xt, 2)
-
-                # Save Current Observation to Trajectory Array
-                self.Input[:, :, t] = torch.squeeze(yt, 2)
-
-                ################################
-                ### Save Current to Previous ###
-                ################################
-                self.x_prev = xt
-
-        if test and randomLength:
-            plot_testset(self.Input, self.Target, size, randomLength, self.lengthMask)
-        elif test and not randomLength:
-            plot_testset(self.Input, self.Target, size, randomLength)
 
 
 
@@ -273,15 +167,22 @@ def plot_testset(test_input, test_target, size, randomLength, lengthMask=None):
 
     if randomLength:
         for b_i in range(size):
+            #print("-- Iterazione ", b_i)
             mask = lengthMask[b_i]
+            #print("test input: ", test_input[b_i, :, mask])
             X_input = test_input[b_i, 0, mask]
+            #print("X input: ", test_input[b_i, 0, mask])
             Y_input = test_input[b_i, 1, mask]
+            #print("Y input: ", test_input[b_i, 1, mask])
 
             X_batch_input.append(X_input)
             Y_batch_input.append(Y_input)
 
+            #print("test target: ", test_target[b_i, :, mask])
             X_target = test_target[b_i, 0, mask]
+            #print("X target: ", test_target[b_i, 0, mask])
             Y_target = test_target[b_i, 2, mask]
+            #print("Y target: ", test_target[b_i, 2, mask])
 
             X_batch_target.append(X_target)
             Y_batch_target.append(Y_target)
