@@ -1,15 +1,17 @@
+import numpy as np
 import torch
 import torch.nn as nn
 import time
 from Filters.Linear_KF import KalmanFilter
 
-def KFTest(SysModel, N_T, T_test, test_input, test_target, randomLength, test_lengthMask=None):
+def KFTest(SysModel, N_T, T_test, test_input, test_target):
 
     # LOSS
     loss_fn = nn.MSELoss(reduction='mean')
 
     # MSE [Linear]
     MSE_KF_linear_arr = torch.zeros(N_T)
+    MSESingleTrajectory = torch.zeros([N_T, T_test])
     # allocate memory for KF output
     #start = time.time()
 
@@ -24,10 +26,9 @@ def KFTest(SysModel, N_T, T_test, test_input, test_target, randomLength, test_le
     KF_out = KF.x
     # MSE loss
     for j in range(N_T):# cannot use batch due to different length and std computation
-        if randomLength:
-            MSE_KF_linear_arr[j] = loss_fn(KF.x[j, :, test_lengthMask[j]], test_target[j, :, test_lengthMask[j]]).item()
-        else:
-            MSE_KF_linear_arr[j] = loss_fn(KF.x[j, :, :], test_target[j, :, :]).item()
+       MSE_KF_linear_arr[j] = loss_fn(KF.x[j, :, :], test_target[j, :, :]).item()
+       for k in range(T_test):
+           MSESingleTrajectory[j][k] = loss_fn(KF_out[j, :, k], test_target[j, :, k]).item()
 
     MSE_KF_linear_avg = torch.mean(MSE_KF_linear_arr)
     MSE_KF_dB_avg = 10 * torch.log10(MSE_KF_linear_avg)
@@ -45,7 +46,7 @@ def KFTest(SysModel, N_T, T_test, test_input, test_target, randomLength, test_le
     print("--Kalman Filter - STD:", KF_std_dB, "[dB]")
     # Print Run Time
     #print("Inference Time:", t)
-    return [MSE_KF_linear_arr, MSE_KF_linear_avg, MSE_KF_dB_avg, KF_out, KalmanGain]
+    return [MSE_KF_linear_arr, MSE_KF_linear_avg, MSE_KF_dB_avg, KF_out, KalmanGain, MSESingleTrajectory]
 
 
 
