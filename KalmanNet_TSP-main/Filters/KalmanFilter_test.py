@@ -2,7 +2,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import time
-from Linear_KF import KalmanFilter
+from Filters.Linear_KF import KalmanFilter
 
 def KFTest(SysModel, N_T, T_test, test_input, test_target):
 
