@@ -23,8 +23,10 @@ class Pipeline_EKF:
         self.modelFileName = self.folderName + "model_" + self.modelName + ".pt"
         self.PipelineName = self.folderName + "pipeline_" + self.modelName + ".pt"
 
+
     def save(self):
         torch.save(self, self.PipelineName)
+
 
     def setssModel(self, ssModel):
         self.ssModel = ssModel
