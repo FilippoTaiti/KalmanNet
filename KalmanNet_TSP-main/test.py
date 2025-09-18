@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 
 
 from Simulations.Linear_sysmdl import SystemModel, plot_testset
-from Simulations.utils import DataTestGen, plot_results, plotSquaredError, plotBoxPlot
+from Simulations.utils import DataTestGen, plot_results, plotSquaredError, plotBoxPlot, plotAverageTrajectories
 from Simulations.Radar_2d.parameters import F, H, Q, R_kf, R_Knet, m
 
 from Filters.KalmanFilter_test import KFTest
@@ -127,14 +127,15 @@ def test(T_test, T_min=10):
 
 
    #plot_testset(test_input, test_target, N_T, randomLength)
-   #knet_out = knet_out.detach_().numpy()
-   plot_results(test_target, KF_out, knet_out, N_T)
+   indexes = random.sample(range(N_T), 10)
+   plot_results(test_target, KF_out, knet_out, indexes)
    plotBoxPlot(MSE_obs_dB_arr, MSE_KF_db_arr, MSE_test_db_arr)
-   plotSquaredError(squaredErrorKF, squaredErrorKNet, N_T)
+   plotSquaredError(squaredErrorKF, squaredErrorKNet, indexes)
+   plotAverageTrajectories(squaredErrorKF, squaredErrorKNet, T_test)
 
 
 
-test(50)
+test(200)
 
 
 

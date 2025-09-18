@@ -18,7 +18,7 @@ class KalmanNetNN(torch.nn.Module):
 
         self.InitSystemDynamics(SysModel.f, SysModel.h, SysModel.m, SysModel.n)
 
-        self.InitKGainNet(SysModel.prior_Q, SysModel.prior_Sigma, SysModel.prior_S, 100, 100, 100)
+        self.InitKGainNet(SysModel.prior_Q, SysModel.prior_Sigma, SysModel.prior_S, 30, 5, 40)
 
     ######################################
     ### Initialize Kalman Gain Network ###
@@ -54,7 +54,7 @@ class KalmanNetNN(torch.nn.Module):
         self.d_output_FC1 = self.n ** 2 #2**2 = 4
         self.FC1 = nn.Sequential(
                 nn.Linear(self.d_input_FC1, self.d_output_FC1),
-                nn.ReLU()).to(self.device)
+                nn.ReLU(), nn.Dropout(p=0.1)).to(self.device)
 
         # Fully connected 2
         self.d_input_FC2 = self.d_hidden_S + self.d_hidden_Sigma #4+16=20
@@ -63,28 +63,28 @@ class KalmanNetNN(torch.nn.Module):
         self.FC2 = nn.Sequential(
                 nn.Linear(self.d_input_FC2, self.d_hidden_FC2),
                 nn.ReLU(),
-                nn.Linear(self.d_hidden_FC2, self.d_output_FC2)).to(self.device)
+                nn.Linear(self.d_hidden_FC2, self.d_output_FC2), nn.Dropout(p=0.5)).to(self.device)
 
         # Fully connected 3
         self.d_input_FC3 = self.d_hidden_S + self.d_output_FC2 #4+8=12
         self.d_output_FC3 = self.m ** 2 #4**2=16
         self.FC3 = nn.Sequential(
                 nn.Linear(self.d_input_FC3, self.d_output_FC3),
-                nn.ReLU()).to(self.device)
+                nn.ReLU(), nn.Dropout(p=0.1)).to(self.device)
 
         # Fully connected 4
         self.d_input_FC4 = self.d_hidden_Sigma + self.d_output_FC3 #16+16=32
         self.d_output_FC4 = self.d_hidden_Sigma #16
         self.FC4 = nn.Sequential(
                 nn.Linear(self.d_input_FC4, self.d_output_FC4),
-                nn.ReLU()).to(self.device)
+                nn.ReLU(), nn.Dropout(p=0.1)).to(self.device)
         
         # Fully connected 5
         self.d_input_FC5 = self.m #4
         self.d_output_FC5 = self.m * in_mult_KNet #4*5=20
         self.FC5 = nn.Sequential(
                 nn.Linear(self.d_input_FC5, self.d_output_FC5),
-                nn.ReLU()).to(self.device)
+                nn.ReLU(), nn.Dropout(p=0.1)).to(self.device)
 
         
         # Fully connected 7
@@ -92,7 +92,7 @@ class KalmanNetNN(torch.nn.Module):
         self.d_output_FC7 = self.n #2
         self.FC7 = nn.Sequential(
                 nn.Linear(self.d_input_FC7, self.d_output_FC7),
-                nn.ReLU()).to(self.device)
+                nn.ReLU(), nn.Dropout(p=0.1)).to(self.device)
 
     ##################################
     ### Initialize System Dynamics ###
@@ -137,11 +137,14 @@ class KalmanNetNN(torch.nn.Module):
     def step_KGain_est(self, y):
       #[batch_size, n]
         obs_innov_diff = torch.squeeze(y,2) - torch.squeeze(self.m1y,2) #F2
+        m1x_prior_previous = torch.squeeze(self.m1x_prior_previous, 2)
 
         obs_innov_diff = func.normalize(obs_innov_diff, p=2, dim=1, eps=1e-12, out=None)
 
+        m1x_prior_previous = func.normalize(m1x_prior_previous, p=2, dim=1, eps=1e-12, out=None)
+
         # Kalman Gain Network Step
-        KG = self.KGain_step(obs_innov_diff)
+        KG = self.KGain_step(obs_innov_diff, m1x_prior_previous)
 
         # Reshape Kalman Gain to a Matrix
         self.KGain = torch.reshape(KG, (self.batch_size, self.m, self.n))
@@ -160,6 +163,7 @@ class KalmanNetNN(torch.nn.Module):
         # Innovation
         dy = y - self.m1y # [batch_size, n, 1]
 
+
         # Compute the 1-st posterior moment
         INOV = torch.bmm(self.KGain, dy)
         self.m1x_posterior_previous = self.m1x_posterior
@@ -168,8 +172,14 @@ class KalmanNetNN(torch.nn.Module):
         #self.state_process_posterior_0 = self.state_process_prior_0
         self.m1x_prior_previous = self.m1x_prior
 
+
         # update y_prev
         self.y_previous = y
+
+
+        #print("dy: ", dy.abs().max().item())
+        #print("self.m1x_posterior_previous: ", self.m1x_posterior_previous.abs().max().item())
+        #print("self.m1x_posterior: ", self.m1x_posterior.abs().max().item())
 
         # return
         return self.m1x_posterior
@@ -177,7 +187,7 @@ class KalmanNetNN(torch.nn.Module):
     ########################
     ### Kalman Gain Step ###
     ########################
-    def KGain_step(self, obs_innov_diff):
+    def KGain_step(self, obs_innov_diff, m1x_prior_previous):
 
         def expand_dim(x):
             #print("x shape", x.shape)
@@ -188,15 +198,14 @@ class KalmanNetNN(torch.nn.Module):
 
 
         obs_innov_diff = expand_dim(obs_innov_diff) #F2
-        tmp = torch.squeeze(self.m1x_prior_previous,2)
-        tmp = expand_dim(tmp)
+        m1x_prior_previous = expand_dim(m1x_prior_previous)
 
         ####################
         ### Forward Flow ###
         ####################
         
         # FC 5
-        in_FC5 = tmp
+        in_FC5 = m1x_prior_previous
         out_FC5 = self.FC5(in_FC5)
 
         # Q-GRU

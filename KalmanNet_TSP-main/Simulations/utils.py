@@ -2,7 +2,7 @@
 The file contains utility functions for the simulations.
 """
 import random
-
+import numpy as np
 import torch
 import matplotlib.pyplot as plt
 
@@ -60,8 +60,7 @@ def DataTestGen(SysModel_data, fileName, N_T, T_min, T_test, randomLength):
     torch.save([test_input, test_target, test_init], fileName)
     
 
-def plot_results(trajectories, KF_trajectories, KNet_trajectories, N_T):
-    indexes = random.sample(range(N_T), 5)
+def plot_results(trajectories, KF_trajectories, KNet_trajectories, indexes):
     KF_trajectories = KF_trajectories.detach().numpy()
     KNet_trajectories = KNet_trajectories.detach().numpy()
     for i in indexes:
@@ -91,8 +90,29 @@ def plot_results(trajectories, KF_trajectories, KNet_trajectories, N_T):
         plt.close('all')
 
 
-def plotSquaredError(squaredErrorKF, squaredErrorKNet, N_T):
-    indexes = random.sample(range(N_T), 5)
+
+def plotAverageTrajectories(squaredErrorKF, squaredErrorKNet, length):
+    squaredErrorKF = squaredErrorKF.detach().numpy()
+    squaredErrorKNet = squaredErrorKNet.detach().numpy()
+    avgSquaredErrorKF = np.zeros(length, dtype=float)
+    avgSquaredErrorKNet = np.zeros(length, dtype=float)
+    for i in range(length):
+        #print(squaredErrorKF.shape)
+        avgSquaredErrorKF[i] = np.mean(squaredErrorKF[i])
+        avgSquaredErrorKNet[i] = np.mean(squaredErrorKNet[i])
+    plt.plot(avgSquaredErrorKF, lw=3, color='red')
+    plt.plot(avgSquaredErrorKNet, lw=3, color='blue')
+    plt.title('Average Squared Error with σ ='+ f'{torch.sqrt(R_kf[0,0]).item():.2f}')
+    plt.xlabel('Time step')
+    plt.ylabel('Squared Error')
+    plt.legend(['KF', 'KNet'], loc='best')
+    plt.grid(True)
+    plt.show()
+    plt.close('all')
+
+
+
+def plotSquaredError(squaredErrorKF, squaredErrorKNet, indexes):
     for i in indexes:
         plt.plot(squaredErrorKF[i].detach().numpy(), lw=3, color='red')
         plt.plot(squaredErrorKNet[i].detach().numpy(), lw=3, color='blue')
@@ -113,5 +133,6 @@ def plotBoxPlot(MSE_obs, MSE_KF, MSE_KNet):
     plt.legend([boxPlot['boxes'][0], boxPlot['boxes'][1], boxPlot['boxes'][2]], ["Observation", "Kalman Filter", "KalmanNet"], loc='upper left')
     plt.title('Mean Squared Error with σ ='+ f'{torch.sqrt(R_kf[0,0]).item():.2f}')
     plt.tight_layout()
+    plt.grid(True)
     plt.show()
     plt.close('all')

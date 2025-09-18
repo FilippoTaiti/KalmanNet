@@ -9,6 +9,7 @@ import random
 import time
 import numpy as np
 from matplotlib import pyplot as plt
+from torch.nn import SmoothL1Loss
 from torch_optimizer import Lookahead
 import torch.optim.lr_scheduler as lr_scheduler
 
@@ -48,11 +49,27 @@ class Pipeline_EKF:
         # the model for us. Here we will use Adam; the optim package contains many other
         # optimization algorithms. The first argument to the Adam constructor tells the
         # optimizer which Tensors it should update.
-        base_optimizer = torch.optim.Adam(self.model.parameters(), lr=self.learningRate, weight_decay=self.weightDecay)
+        base_optimizer = torch.optim.AdamW(self.model.parameters(), lr=self.learningRate, weight_decay=self.weightDecay)
         self.optimizer = Lookahead(base_optimizer)
 
+    def defineLossFunction(self, epoch):
+        if epoch < 20:
+            return nn.SmoothL1Loss()
+        else:
+            return nn.MSELoss(reduction='mean')
 
-    def NNTrain(self, SysModel, cv_input, cv_target, train_input, train_target, path_results, CompositionLoss):
+
+    def NNTrain(self, SysModel, cv_input, cv_target, train_input, train_target, path_results, CompositionLoss, loadModel):
+
+        if loadModel:
+            checkpoint = torch.load(path_results+'best-model-200try2.pt', map_location=torch.device('cpu'))
+            self.model.load_state_dict(checkpoint['model_state_dict'])
+            self.optimizer.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+
+        startEpoch = 0
+
+
+        #self.model = torch.load(path_results + 'best-model-random200.pt', map_location=self.device, weights_only=False)
 
         self.N_E = len(train_input)
         self.N_CV = len(cv_input)
@@ -60,7 +77,7 @@ class Pipeline_EKF:
         self.MSE_cv_linear_epoch = torch.zeros([self.N_steps])
         self.MSE_cv_dB_epoch = torch.zeros([self.N_steps])
 
-        scheduler = lr_scheduler.ReduceLROnPlateau(self.optimizer, mode='min', factor=0.5, patience=10)
+        scheduler = lr_scheduler.OneCycleLR(self.optimizer, max_lr=5e-4, epochs= self.N_steps, steps_per_epoch=30)
 
         self.MSE_train_linear_epoch = torch.zeros([self.N_steps])
         self.MSE_train_dB_epoch = torch.zeros([self.N_steps])
@@ -72,8 +89,7 @@ class Pipeline_EKF:
         self.MSE_cv_dB_opt = 1000
         self.MSE_cv_idx_opt = 0
 
-        for ti in range(0, self.N_steps):
-
+        for ti in range(startEpoch, self.N_steps):
             ###############################
             ### Training Sequence Batch ###
             ###############################
@@ -104,6 +120,7 @@ class Pipeline_EKF:
             # Forward Computation
             for t in range(0, SysModel.T):
                 x_out_training_batch[:, :, t] = torch.squeeze(self.model(torch.unsqueeze(y_training_batch[:, :, t], 2)))
+
 
             # Compute Training Loss
             MSE_trainbatch_linear_LOSS = 0
@@ -140,7 +157,7 @@ class Pipeline_EKF:
             # Calling the step function on an Optimizer makes an update to its
             # parameters
             self.optimizer.step()
-            scheduler.step(self.MSE_cv_dB_epoch[ti])
+            scheduler.step()
 
             #################################
             ### Validation Sequence Batch ###
@@ -184,8 +201,9 @@ class Pipeline_EKF:
                     self.MSE_cv_dB_opt = self.MSE_cv_dB_epoch[ti]
                     self.MSE_cv_idx_opt = ti
 
-                    torch.save(self.model, path_results + 'best-model.pt')
-
+                    torch.save({
+                        'epoch': ti, 'model_state_dict': self.model.state_dict(), 'optimizer_state_dict': self.optimizer.optimizer.state_dict()
+                    }, path_results+'best-model-200try2.pt')
             ########################
             ### Training Summary ###
             ########################
@@ -207,10 +225,9 @@ class Pipeline_EKF:
 
     def NNTest(self, SysModel, test_input, test_target, path_results, load_model=False, load_model_path=None):
         # Load model
-        if load_model:
-            self.model = torch.load(load_model_path, map_location=self.device, weights_only=False)
-        else:
-            self.model = torch.load(path_results + 'best-model.pt', map_location=self.device, weights_only=False)
+        checkpoint = torch.load(path_results + 'best-model-200try2.pt', map_location=torch.device('cpu'))
+        self.model.load_state_dict(checkpoint['model_state_dict'])
+        self.optimizer.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
 
         self.N_T = test_input.shape[0]
         SysModel.T_test = test_input.size()[-1]
