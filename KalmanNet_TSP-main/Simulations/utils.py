@@ -81,25 +81,23 @@ def plot_results(trajectories, KF_trajectories, KNet_trajectories, indexes):
         #print("KNet Traj y: ", KN_traj_y)
         #plt.figure()
         figure, axis = plt.subplots(1, 1, figsize=(15, 15))
-        plt.plot(list(traj_x), list(traj_y), lw=3, color = 'green')
-        plt.plot(list(KF_traj_x), list(KF_traj_y), lw=3, color = 'red')
-        plt.plot(list(KNet_traj_x), list(KNet_traj_y), lw=3, color = 'blue')
+        plt.plot(traj_x, traj_y, lw=3, color = 'green')
+        plt.plot(KF_traj_x, KF_traj_y, lw=3, color = 'red')
+        plt.plot(KNet_traj_x, KNet_traj_y, lw=3, color = 'blue')
         plt.title('Trajectories with σ ='+ f'{torch.sqrt(R_kf[0,0]).item():.2f}')
-        plt.legend(['Trajectories', 'KF Trajectories', 'KNet Trajectories'], loc='upper right')
+        plt.legend(['Target Trajectory', 'KF Trajectory', 'KNet Trajectory'], loc='upper right')
         plt.show()
         plt.close('all')
 
 
 
-def plotAverageTrajectories(squaredErrorKF, squaredErrorKNet, length):
+def plotAverageTrajectories(squaredErrorKF, squaredErrorKNet):
     squaredErrorKF = squaredErrorKF.detach().numpy()
     squaredErrorKNet = squaredErrorKNet.detach().numpy()
-    avgSquaredErrorKF = np.zeros(length, dtype=float)
-    avgSquaredErrorKNet = np.zeros(length, dtype=float)
-    for i in range(length):
-        #print(squaredErrorKF.shape)
-        avgSquaredErrorKF[i] = np.mean(squaredErrorKF[i])
-        avgSquaredErrorKNet[i] = np.mean(squaredErrorKNet[i])
+
+    avgSquaredErrorKF = np.mean(squaredErrorKF, axis=0)
+    avgSquaredErrorKNet = np.mean(squaredErrorKNet, axis=0)
+
     plt.plot(avgSquaredErrorKF, lw=3, color='red')
     plt.plot(avgSquaredErrorKNet, lw=3, color='blue')
     plt.title('Average Squared Error with σ ='+ f'{torch.sqrt(R_kf[0,0]).item():.2f}')
@@ -113,9 +111,11 @@ def plotAverageTrajectories(squaredErrorKF, squaredErrorKNet, length):
 
 
 def plotSquaredError(squaredErrorKF, squaredErrorKNet, indexes):
+    squaredErrorKF = squaredErrorKF.detach().numpy()
+    squaredErrorKNet = squaredErrorKNet.detach().numpy()
     for i in indexes:
-        plt.plot(squaredErrorKF[i].detach().numpy(), lw=3, color='red')
-        plt.plot(squaredErrorKNet[i].detach().numpy(), lw=3, color='blue')
+        plt.plot(squaredErrorKF[i], lw=3, color='red')
+        plt.plot(squaredErrorKNet[i], lw=3, color='blue')
         plt.title('Squared Error of KF and KNet with σ ='+ f'{torch.sqrt(R_kf[0,0]).item():.2f}')
         plt.xlabel('Time step')
         plt.ylabel('Squared Error')

@@ -30,7 +30,7 @@ def test(T_test, T_min=10):
    path_results = 'KNet/'
 
    ### dataset parameters ##################################################
-   N_T = 20000  # Numero di sequenze del Test Set
+   N_T = 200  # Numero di sequenze del Test Set
    # init condition
 
 
@@ -115,27 +115,19 @@ def test(T_test, T_min=10):
    MSE_KF_db_arr = 10*torch.log10(MSE_KF_linear_arr)
    MSE_test_db_arr = 10*torch.log10(MSE_test_linear_arr)
 
-   plt.plot(range(N_T), MSE_obs_dB_arr, 'g', label= "Initial Loss")
-   plt.plot(range(N_T), MSE_KF_db_arr, 'r', label= "KF Test Loss")
-   plt.plot(range(N_T), MSE_test_db_arr, 'b', label= "KNet Test Loss")
-   plt.xlabel("Sequences")
-   plt.ylabel("MSE Loss")
-   plt.grid(True)
-   plt.show()
-   plt.close('all')
 
 
 
    #plot_testset(test_input, test_target, N_T, randomLength)
-   indexes = random.sample(range(N_T), 10)
+   indexes = random.sample(range(N_T), 3)
    plot_results(test_target, KF_out, knet_out, indexes)
    plotBoxPlot(MSE_obs_dB_arr, MSE_KF_db_arr, MSE_test_db_arr)
    plotSquaredError(squaredErrorKF, squaredErrorKNet, indexes)
-   plotAverageTrajectories(squaredErrorKF, squaredErrorKNet, T_test)
+   plotAverageTrajectories(squaredErrorKF, squaredErrorKNet)
 
 
 
-test(200)
+test(50)
 
 
 
