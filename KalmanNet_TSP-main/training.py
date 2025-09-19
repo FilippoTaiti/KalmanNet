@@ -51,7 +51,7 @@ T_min = 50
 CompositionLoss = True
 
 ### training parameters ##################################################
-N_steps = 200 # Numero epoche
+N_steps = 2000 # Numero epoche
 N_batch = 30 # Dimensione del singolo batch
 lr = 5e-4
 wd = 5e-5

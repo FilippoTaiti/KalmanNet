@@ -62,7 +62,7 @@ class Pipeline_EKF:
     def NNTrain(self, SysModel, cv_input, cv_target, train_input, train_target, path_results, CompositionLoss, loadModel):
 
         if loadModel:
-            checkpoint = torch.load(path_results+'best-model-200try2.pt', map_location=torch.device('cpu'))
+            checkpoint = torch.load(path_results+'best-model-200try3.pt', map_location=torch.device('cpu'))
             self.model.load_state_dict(checkpoint['model_state_dict'])
             self.optimizer.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
 
@@ -203,7 +203,7 @@ class Pipeline_EKF:
 
                     torch.save({
                         'epoch': ti, 'model_state_dict': self.model.state_dict(), 'optimizer_state_dict': self.optimizer.optimizer.state_dict()
-                    }, path_results+'best-model-200try2.pt')
+                    }, path_results+'best-model-200try3.pt')
             ########################
             ### Training Summary ###
             ########################
@@ -283,6 +283,7 @@ class Pipeline_EKF:
         #print("Inference Time:", t)
 
         KalmanGainKN = self.model.KGain
+        MSESingleTrajectory = 10*torch.log10(MSESingleTrajectory)
 
         return [self.MSE_test_linear_arr, self.MSE_test_linear_avg, self.MSE_test_dB_avg, x_out_test, t, KalmanGainKN, MSESingleTrajectory]
 

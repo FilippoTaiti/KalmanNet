@@ -41,6 +41,7 @@ def KFTest(SysModel, N_T, T_test, test_input, test_target):
     #KF_std_dB = 10 * torch.log10(MSE_KF_linear_std)
 
     KalmanGain = KF.KG
+    MSESingleTrajectory = 10 * torch.log10(MSESingleTrajectory)
 
     print("--Kalman Filter - MSE LOSS:", MSE_KF_dB_avg, "[dB]")
     print("--Kalman Filter - STD:", KF_std_dB, "[dB]")

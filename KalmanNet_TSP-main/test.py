@@ -30,7 +30,7 @@ def test(T_test, T_min=10):
    path_results = 'KNet/'
 
    ### dataset parameters ##################################################
-   N_T = 200  # Numero di sequenze del Test Set
+   N_T = 20000  # Numero di sequenze del Test Set
    # init condition
 
 
@@ -119,7 +119,7 @@ def test(T_test, T_min=10):
 
 
    #plot_testset(test_input, test_target, N_T, randomLength)
-   indexes = random.sample(range(N_T), 3)
+   indexes = random.sample(range(N_T), 10)
    plot_results(test_target, KF_out, knet_out, indexes)
    plotBoxPlot(MSE_obs_dB_arr, MSE_KF_db_arr, MSE_test_db_arr)
    plotSquaredError(squaredErrorKF, squaredErrorKNet, indexes)
@@ -127,8 +127,7 @@ def test(T_test, T_min=10):
 
 
 
-test(50)
-
+test(200)
 
 
 
