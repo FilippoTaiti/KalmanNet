@@ -49,7 +49,7 @@ Q = 5*torch.tensor([[(dt**3)/3, (dt**2)/2, 0, 0],[(dt**2)/2, dt, 0, 0], [0, 0, (
 r_knet = torch.tensor([4, 0.0002]).float()
 R_Knet = torch.diag(r_knet)
 
-r_kf = torch.tensor([26**2, 26**2]).float()
+r_kf = torch.tensor([35**2, 35**2]).float()
 R_kf = torch.diag(r_kf)
 
 
