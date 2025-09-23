@@ -218,7 +218,7 @@ class Pipeline_EKF:
 
     def NNTest(self, SysModel, test_input, test_target, path_results, load_model=False, load_model_path=None):
         # Load model
-        checkpoint = torch.load(path_results + 'BEST_MODEL_200FF.pt', map_location=torch.device('cpu'))
+        checkpoint = torch.load(path_results + 'BEST_MODEL_50.pt', map_location=torch.device('cpu'))
         self.model.load_state_dict(checkpoint['model_state_dict'])
         self.optimizer.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
 

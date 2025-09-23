@@ -30,7 +30,7 @@ def test(T_test, T_min=10):
    path_results = 'KNet/'
 
    ### dataset parameters ##################################################
-   N_T = 2000  # Numero di sequenze del Test Set
+   N_T = 20000  # Numero di sequenze del Test Set
    # init condition
 
 
