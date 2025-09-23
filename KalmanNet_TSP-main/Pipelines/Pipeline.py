@@ -9,7 +9,6 @@ import random
 import time
 import numpy as np
 from matplotlib import pyplot as plt
-from torch.nn import SmoothL1Loss
 from torch_optimizer import Lookahead
 import torch.optim.lr_scheduler as lr_scheduler
 
@@ -62,7 +61,7 @@ class Pipeline_EKF:
     def NNTrain(self, SysModel, cv_input, cv_target, train_input, train_target, path_results, CompositionLoss, loadModel):
 
         if loadModel:
-            checkpoint = torch.load(path_results+'best-model-200try3.pt', map_location=torch.device('cpu'))
+            checkpoint = torch.load(path_results+'BEST_MODEL_200F.pt', map_location=torch.device('cpu'))
             self.model.load_state_dict(checkpoint['model_state_dict'])
             self.optimizer.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
 
@@ -77,7 +76,7 @@ class Pipeline_EKF:
         self.MSE_cv_linear_epoch = torch.zeros([self.N_steps])
         self.MSE_cv_dB_epoch = torch.zeros([self.N_steps])
 
-        scheduler = lr_scheduler.OneCycleLR(self.optimizer, max_lr=5e-4, epochs= self.N_steps, steps_per_epoch=30)
+        scheduler = lr_scheduler.ReduceLROnPlateau(self.optimizer, mode='min', factor=0.5, patience=5) #50 pat10 --> 200 pat5
 
         self.MSE_train_linear_epoch = torch.zeros([self.N_steps])
         self.MSE_train_dB_epoch = torch.zeros([self.N_steps])
@@ -157,7 +156,6 @@ class Pipeline_EKF:
             # Calling the step function on an Optimizer makes an update to its
             # parameters
             self.optimizer.step()
-            scheduler.step()
 
             #################################
             ### Validation Sequence Batch ###
@@ -187,23 +185,18 @@ class Pipeline_EKF:
 
                 MSE_cvbatch_linear_LOSS = self.loss_fn(x_out_cv_batch, cv_target)
 
-                '''valid_loss += MSE_cvbatch_linear_LOSS.item()
-                # print(f'Epoch {ti}: Validation Loss: {valid_loss:.6f}')
-                early_stop(valid_loss, self.model)
-                if early_stop.stop:
-                    print('Early stopping')
-                    break'''
-                #scheduler.step(MSE_trainbatch_linear_LOSS.item())
                 # dB Loss
                 self.MSE_cv_linear_epoch[ti] = MSE_cvbatch_linear_LOSS.item()
                 self.MSE_cv_dB_epoch[ti] = 10 * torch.log10(self.MSE_cv_linear_epoch[ti])
+                scheduler.step(MSE_cvbatch_linear_LOSS.item())
+
                 if (self.MSE_cv_dB_epoch[ti] < self.MSE_cv_dB_opt):
                     self.MSE_cv_dB_opt = self.MSE_cv_dB_epoch[ti]
                     self.MSE_cv_idx_opt = ti
 
                     torch.save({
                         'epoch': ti, 'model_state_dict': self.model.state_dict(), 'optimizer_state_dict': self.optimizer.optimizer.state_dict()
-                    }, path_results+'best-model-200try3.pt')
+                    }, path_results+'BEST_MODEL_200FF.pt')
             ########################
             ### Training Summary ###
             ########################
@@ -225,7 +218,7 @@ class Pipeline_EKF:
 
     def NNTest(self, SysModel, test_input, test_target, path_results, load_model=False, load_model_path=None):
         # Load model
-        checkpoint = torch.load(path_results + 'best-model-200try2.pt', map_location=torch.device('cpu'))
+        checkpoint = torch.load(path_results + 'BEST_MODEL_200FF.pt', map_location=torch.device('cpu'))
         self.model.load_state_dict(checkpoint['model_state_dict'])
         self.optimizer.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
 
