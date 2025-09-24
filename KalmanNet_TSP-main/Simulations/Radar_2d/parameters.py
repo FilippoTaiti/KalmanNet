@@ -49,11 +49,22 @@ Q = 5*torch.tensor([[(dt**3)/3, (dt**2)/2, 0, 0],[(dt**2)/2, dt, 0, 0], [0, 0, (
 r_knet = torch.tensor([4, 0.0002]).float()
 R_Knet = torch.diag(r_knet)
 
-r_kf = torch.tensor([7**2, 7**2]).float()
+r_kf = torch.tensor([30**2, 30**2]).float()
 R_kf = torch.diag(r_kf)
 
+#50_old_model --> [3 , 4]
 
-#con best-model-200try2.pt -->
+#50_new_model --> [0.3 , 21]
+
+#100_new_model --> [3 , 23]
+
+#200_new_model --> [ , ]
+
+
+
+
+
+
 
 #50 --> [0.05 , 25.5]
 

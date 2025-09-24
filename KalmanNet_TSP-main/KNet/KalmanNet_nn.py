@@ -137,14 +137,14 @@ class KalmanNetNN(torch.nn.Module):
     def step_KGain_est(self, y):
       #[batch_size, n]
         obs_innov_diff = torch.squeeze(y,2) - torch.squeeze(self.m1y,2) #F2
-        m1x_prior_previous = torch.squeeze(self.m1x_prior_previous, 2)
+        m1x_prior = torch.squeeze(self.m1x_prior, 2)
 
         obs_innov_diff = func.normalize(obs_innov_diff, p=2, dim=1, eps=1e-12, out=None)
 
-        m1x_prior_previous = func.normalize(m1x_prior_previous, p=2, dim=1, eps=1e-12, out=None)
+        m1x_prior = func.normalize(m1x_prior, p=2, dim=1, eps=1e-12, out=None)
 
         # Kalman Gain Network Step
-        KG = self.KGain_step(obs_innov_diff, m1x_prior_previous)
+        KG = self.KGain_step(obs_innov_diff, m1x_prior)
 
         # Reshape Kalman Gain to a Matrix
         self.KGain = torch.reshape(KG, (self.batch_size, self.m, self.n))
@@ -187,7 +187,7 @@ class KalmanNetNN(torch.nn.Module):
     ########################
     ### Kalman Gain Step ###
     ########################
-    def KGain_step(self, obs_innov_diff, m1x_prior_previous):
+    def KGain_step(self, obs_innov_diff, m1x_prior):
 
         def expand_dim(x):
             #print("x shape", x.shape)
@@ -198,14 +198,14 @@ class KalmanNetNN(torch.nn.Module):
 
 
         obs_innov_diff = expand_dim(obs_innov_diff) #F2
-        m1x_prior_previous = expand_dim(m1x_prior_previous)
+        m1x_prior = expand_dim(m1x_prior)
 
         ####################
         ### Forward Flow ###
         ####################
         
         # FC 5
-        in_FC5 = m1x_prior_previous
+        in_FC5 = m1x_prior
         out_FC5 = self.FC5(in_FC5)
 
         # Q-GRU

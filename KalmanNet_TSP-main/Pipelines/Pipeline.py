@@ -61,7 +61,7 @@ class Pipeline_EKF:
     def NNTrain(self, SysModel, cv_input, cv_target, train_input, train_target, path_results, CompositionLoss, loadModel):
 
         if loadModel:
-            checkpoint = torch.load(path_results+'BEST_MODEL_200F.pt', map_location=torch.device('cpu'))
+            checkpoint = torch.load(path_results+'BEST_MODEL_200NEWF.pt', map_location=torch.device('cpu'))
             self.model.load_state_dict(checkpoint['model_state_dict'])
             self.optimizer.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
 
@@ -76,7 +76,7 @@ class Pipeline_EKF:
         self.MSE_cv_linear_epoch = torch.zeros([self.N_steps])
         self.MSE_cv_dB_epoch = torch.zeros([self.N_steps])
 
-        scheduler = lr_scheduler.ReduceLROnPlateau(self.optimizer, mode='min', factor=0.5, patience=5) #50 pat10 --> 200 pat5
+        scheduler = lr_scheduler.ReduceLROnPlateau(self.optimizer, mode='min', factor=0.5, patience=3) #50 pat10 --> 200 pat5
 
         self.MSE_train_linear_epoch = torch.zeros([self.N_steps])
         self.MSE_train_dB_epoch = torch.zeros([self.N_steps])
@@ -196,7 +196,7 @@ class Pipeline_EKF:
 
                     torch.save({
                         'epoch': ti, 'model_state_dict': self.model.state_dict(), 'optimizer_state_dict': self.optimizer.optimizer.state_dict()
-                    }, path_results+'BEST_MODEL_200FF.pt')
+                    }, path_results+'BEST_MODEL_200NEWF.pt')
             ########################
             ### Training Summary ###
             ########################
@@ -218,7 +218,7 @@ class Pipeline_EKF:
 
     def NNTest(self, SysModel, test_input, test_target, path_results, load_model=False, load_model_path=None):
         # Load model
-        checkpoint = torch.load(path_results + 'BEST_MODEL_50.pt', map_location=torch.device('cpu'))
+        checkpoint = torch.load(path_results + 'BEST_MODEL_50NEWF.pt', map_location=torch.device('cpu'))
         self.model.load_state_dict(checkpoint['model_state_dict'])
         self.optimizer.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
 
